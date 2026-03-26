@@ -1,0 +1,72 @@
+@import '../../styles/variables';
+
+.address-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $bg-page;
+
+  &__content {
+    flex: 1;
+    height: 100%;
+  }
+
+  &__footer {
+    padding: $spacing-base $spacing-md;
+    background-color: $bg-white;
+    border-top: 1px solid $border-color;
+  }
+
+  &__save-btn {
+    background-color: $primary-color;
+    color: $text-white;
+    font-size: $font-size-md;
+    font-weight: bold;
+    text-align: center;
+    padding: $spacing-base;
+    border-radius: $radius-lg;
+  }
+}
+
+// ========== 表单项 ==========
+.form-item {
+  display: flex;
+  align-items: center;
+  background-color: $bg-white;
+  padding: $spacing-base;
+  border-bottom: 1px solid $border-light;
+
+  &--textarea {
+    align-items: flex-start;
+  }
+
+  &__label {
+    width: 160px;
+    font-size: $font-size-base;
+    color: $text-primary;
+    flex-shrink: 0;
+  }
+
+  &__input {
+    flex: 1;
+    font-size: $font-size-base;
+    color: $text-primary;
+  }
+
+  &__placeholder {
+    color: $text-placeholder;
+  }
+
+  &__value {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__arrow {
+    font-size: $font-size-xl;
+    color: $text-hint;
+    margin-left: $spacing-sm;
+  }
+}

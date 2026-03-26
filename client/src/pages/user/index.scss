@@ -1,0 +1,149 @@
+@import '../../styles/variables';
+
+.user-page {
+  min-height: 100vh;
+  background-color: $bg-page;
+}
+
+// ========== 京东风格红色头部 ==========
+.user-header {
+  background: linear-gradient(135deg, $primary-color, #f75c5c);
+  padding: 48px $spacing-md $spacing-xl;
+  padding-top: calc(48px + env(safe-area-inset-top));
+
+  &__info {
+    display: flex;
+    align-items: center;
+  }
+
+  &__login {
+    display: flex;
+    align-items: center;
+  }
+
+  &__avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: $radius-full;
+    border: 4px solid rgba(255, 255, 255, 0.5);
+    margin-right: $spacing-md;
+    background-color: #ffffff;
+  }
+
+  &__detail {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__name {
+    color: $text-white;
+    font-size: $font-size-xl;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+
+  &__tag {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: $font-size-xs;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 4px 16px;
+    border-radius: 20px;
+    align-self: flex-start;
+  }
+
+  &__tip {
+    color: $text-white;
+    font-size: $font-size-xl;
+    font-weight: bold;
+  }
+}
+
+// ========== 订单入口 ==========
+.order-section {
+  margin: -30px $spacing-base $spacing-base;
+  position: relative;
+  z-index: 1;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-base;
+    border-bottom: 1px solid $border-light;
+  }
+
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+  }
+
+  &__more {
+    font-size: $font-size-sm;
+    color: $text-hint;
+  }
+
+  &__grid {
+    display: flex;
+    padding: $spacing-md 0;
+  }
+
+  &__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__icon {
+    font-size: 44px;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+}
+
+// ========== 菜单列表 ==========
+.menu-section {
+  margin: 0 $spacing-base $spacing-base;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg $spacing-base;
+  position: relative;
+
+  &__left {
+    display: flex;
+    align-items: center;
+  }
+
+  &__icon {
+    font-size: $font-size-xl;
+    margin-right: $spacing-base;
+  }
+
+  &__label {
+    font-size: $font-size-base;
+    color: $text-primary;
+  }
+
+  &__arrow {
+    font-size: $font-size-xl;
+    color: $text-hint;
+  }
+
+  &__border {
+    position: absolute;
+    bottom: 0;
+    left: 72px;
+    right: 0;
+    height: 1px;
+    background-color: $border-light;
+  }
+}

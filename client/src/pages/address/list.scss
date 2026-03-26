@@ -1,0 +1,92 @@
+@import '../../styles/variables';
+
+.address-list {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $bg-page;
+
+  &__content {
+    flex: 1;
+    height: 100%;
+    padding: $spacing-sm;
+  }
+
+  &__footer {
+    padding: $spacing-base $spacing-md;
+    background-color: $bg-white;
+    border-top: 1px solid $border-color;
+  }
+
+  &__add-btn {
+    background-color: $primary-color;
+    color: $text-white;
+    font-size: $font-size-md;
+    font-weight: bold;
+    text-align: center;
+    padding: $spacing-base;
+    border-radius: $radius-lg;
+  }
+}
+
+// ========== 地址项 ==========
+.address-item {
+  background-color: $bg-white;
+  border-radius: $radius-base;
+  margin-bottom: $spacing-sm;
+  overflow: hidden;
+
+  &__content {
+    padding: $spacing-base;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__name {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+    margin-right: $spacing-base;
+  }
+
+  &__phone {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    margin-right: $spacing-sm;
+  }
+
+  &__default {
+    background-color: $primary-color;
+    color: $text-white;
+    font-size: 20px;
+    padding: 2px 10px;
+    border-radius: $radius-sm;
+  }
+
+  &__detail {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    border-top: 1px solid $border-light;
+  }
+
+  &__action {
+    flex: 1;
+    text-align: center;
+    padding: $spacing-base 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+
+    & + & {
+      border-left: 1px solid $border-light;
+    }
+  }
+}

@@ -1,0 +1,256 @@
+@import '../../styles/variables';
+
+.order-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $bg-page;
+
+  &__content {
+    flex: 1;
+    height: 100%;
+  }
+}
+
+// ========== 状态栏 ==========
+.status-bar {
+  background-color: $primary-color;
+  display: flex;
+  align-items: center;
+  padding: $spacing-xl $spacing-base;
+
+  &__icon {
+    font-size: 44px;
+    margin-right: $spacing-base;
+  }
+
+  &__text {
+    color: $text-white;
+    font-size: $font-size-xl;
+    font-weight: bold;
+  }
+}
+
+// ========== 收货地址 ==========
+.address-info {
+  background-color: $bg-white;
+  padding: $spacing-base;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__icon {
+    font-size: $font-size-lg;
+    margin-right: $spacing-sm;
+  }
+
+  &__name {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+    margin-right: $spacing-base;
+  }
+
+  &__phone {
+    font-size: $font-size-base;
+    color: $text-secondary;
+  }
+
+  &__detail {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.5;
+    padding-left: 44px;
+  }
+}
+
+// ========== 商品信息 ==========
+.goods-section {
+  background-color: $bg-white;
+  padding: $spacing-base;
+}
+
+.goods-item {
+  display: flex;
+  margin-bottom: $spacing-base;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__image {
+    width: 160px;
+    height: 160px;
+    border-radius: $radius-base;
+    background-color: #f5f5f5;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    margin-left: $spacing-base;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  &__name {
+    font-size: $font-size-base;
+    color: $text-primary;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  &__sku {
+    font-size: $font-size-xs;
+    color: $text-hint;
+  }
+
+  &__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__price {
+    color: $text-price;
+    font-size: $font-size-lg;
+    font-weight: bold;
+  }
+
+  &__quantity {
+    color: $text-hint;
+    font-size: $font-size-base;
+  }
+}
+
+// ========== 价格明细 ==========
+.price-section {
+  background-color: $bg-white;
+  padding: $spacing-base;
+
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+    margin-bottom: $spacing-base;
+  }
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+
+  &__label {
+    font-size: $font-size-base;
+    color: $text-secondary;
+  }
+
+  &__value {
+    font-size: $font-size-base;
+    color: $text-primary;
+
+    &--discount {
+      color: $text-price;
+    }
+  }
+
+  &--total {
+    border-top: 1px solid $border-light;
+    padding-top: $spacing-base;
+    margin-top: $spacing-xs;
+
+    .price-row__label {
+      font-weight: bold;
+      color: $text-primary;
+    }
+
+    .price-row__value {
+      color: $text-price;
+      font-size: $font-size-xl;
+      font-weight: bold;
+    }
+  }
+}
+
+// ========== 订单信息 ==========
+.info-section {
+  background-color: $bg-white;
+  padding: $spacing-base;
+
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+    margin-bottom: $spacing-base;
+  }
+}
+
+.info-row {
+  display: flex;
+  padding: $spacing-sm 0;
+
+  &__label {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    width: 140px;
+    flex-shrink: 0;
+  }
+
+  &__value-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  &__value {
+    flex: 1;
+    font-size: $font-size-base;
+    color: $text-primary;
+  }
+
+  &__copy {
+    color: $primary-color;
+    font-size: $font-size-sm;
+    margin-left: $spacing-sm;
+    padding: 4px 12px;
+    border: 1px solid $primary-color;
+    border-radius: $radius-sm;
+  }
+}
+
+// ========== 底部操作栏 ==========
+.order-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-base;
+  background-color: $bg-white;
+  padding: $spacing-base $spacing-md;
+  border-top: 1px solid $border-color;
+
+  &__btn {
+    padding: $spacing-sm $spacing-lg;
+    border-radius: $radius-lg;
+    font-size: $font-size-base;
+
+    &--outline {
+      border: 1px solid $text-hint;
+      color: $text-secondary;
+    }
+
+    &--primary {
+      background-color: $primary-color;
+      color: $text-white;
+      font-weight: bold;
+    }
+  }
+}
