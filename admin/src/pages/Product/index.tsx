@@ -43,10 +43,20 @@ export default function Product() {
       const res: any = await request.get('/products', {
         params: { page, pageSize, keyword, categoryId },
       })
-      setList(res.data?.list || res.data?.data?.list || [])
+      const rawData = res.data?.list || res.data?.data?.list || []
+      // 将 snake_case 转为 camelCase
+      const list = rawData.map((item: any) => ({
+        ...item,
+        categoryName: item.category_name,
+      }))
+      setList(list)
       setTotal(res.data?.total || res.data?.data?.total || 0)
-    } catch { /* handled */ }
-    finally { setLoading(false) }
+    } catch (err) {
+      console.error('获取商品列表失败:', err)
+      message.error('加载失败')
+    } finally {
+      setLoading(false)
+    }
   }
 
   /** 获取分类列表 */
