@@ -23,7 +23,6 @@ interface Product {
 const CategoryPage = () => {
   const [categories, setCategories] = useState<Category[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -37,11 +36,7 @@ const CategoryPage = () => {
       const res: any = await get('/category/list')
       if (res.data && res.data.length > 0) {
         setCategories(res.data)
-        // 默认选中第一个一级分类的第一个子分类
-        if (res.data[0].children && res.data[0].children.length > 0) {
-          setActiveSubIndex(0)
-          loadProducts(res.data[0].children[0].id)
-        }
+        loadProducts(res.data[0])
       } else {
         setCategories([])
         setProducts([])
@@ -51,21 +46,34 @@ const CategoryPage = () => {
     }
   }
 
-  // 根据分类 ID 加载商品
-  const loadProducts = async (categoryId: number) => {
+  // 根据分类加载商品（包含子分类）
+  const loadProducts = async (category: Category) => {
     setLoading(true)
     try {
-      const res: any = await get('/product/list', {
-        params: { categoryId, page: 1, pageSize: 50 }
+      // 获取当前分类及其子分类的所有 ID
+      const categoryIds = [category.id]
+      if (category.children && category.children.length > 0) {
+        category.children.forEach(child => categoryIds.push(child.id))
+      }
+
+      // 并行查询所有分类的商品
+      const results = await Promise.all(
+        categoryIds.map(id => get('/product/list', { params: { categoryId: id, page: 1, pageSize: 50 } }))
+      )
+      const allProducts: Product[] = []
+      results.forEach((res: any) => {
+        const list = res.data?.list || []
+        allProducts.push(...list.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          image: item.main_image,
+          sales: item.sales || 0,
+        })))
       })
-      const list = res.data?.list || []
-      setProducts(list.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        image: item.main_image,
-        sales: item.sales || 0,
-      })))
+      // 去重
+      const uniqueProducts = Array.from(new Map(allProducts.map(item => [item.id, item])).values())
+      setProducts(uniqueProducts)
     } catch (error) {
       console.error('加载商品失败:', error)
       setProducts([])
@@ -74,17 +82,10 @@ const CategoryPage = () => {
     }
   }
 
-  // 切换一级分类
+  // 切换分类
   const handleCategoryChange = (index: number) => {
     setActiveIndex(index)
-    setActiveSubIndex(null)
-    setProducts([])
-  }
-
-  // 点击子分类加载商品
-  const handleSubCategoryClick = (subCategoryId: number, subIndex: number) => {
-    setActiveSubIndex(subIndex)
-    loadProducts(subCategoryId)
+    loadProducts(categories[index])
   }
 
   // 跳转商品详情
@@ -130,15 +131,11 @@ const CategoryPage = () => {
 
         {/* 右侧内容 */}
         <ScrollView scrollY className='category-content'>
-          {/* 子分类 - 点击加载对应商品 */}
+          {/* 子分类展示（仅展示，点击不切换） */}
           {currentCategory?.children && currentCategory.children.length > 0 && (
             <View className='subcategory'>
-              {currentCategory.children.map((sub, subIndex) => (
-                <View
-                  className={`subcategory__item ${activeSubIndex === subIndex ? 'subcategory__item--active' : ''}`}
-                  key={sub.id}
-                  onClick={() => handleSubCategoryClick(sub.id, subIndex)}
-                >
+              {currentCategory.children.map((sub) => (
+                <View className='subcategory__item' key={sub.id}>
                   <View className='subcategory__icon'>📦</View>
                   <Text className='subcategory__name'>{sub.name}</Text>
                 </View>
