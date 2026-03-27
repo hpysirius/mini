@@ -26,7 +26,7 @@ export const wxLogin = async (): Promise<boolean> => {
   try {
     const { code } = await Taro.login()
 
-    const res = await post<{ token: string; userInfo: any }>('/auth/login', {
+    const res = await post<{ token: string; userInfo: any }>('/user/login', {
       code,
     })
 

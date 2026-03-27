@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Input, Switch, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { get, post, put } from '../../utils/request'
 import './edit.scss'
 
 interface AddressForm {
@@ -25,38 +26,43 @@ const AddressEdit = () => {
   })
   const [isEdit, setIsEdit] = useState(false)
   const [addressId, setAddressId] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params
     if (params?.id) {
       setIsEdit(true)
       setAddressId(Number(params.id))
-      // 模拟加载已有地址数据
-      setForm({
-        name: '张三',
-        phone: '13888888888',
-        province: '广东省',
-        city: '深圳市',
-        district: '南山区',
-        detail: '科技园南区xx大厦xx号',
-        isDefault: true,
-      })
+      loadAddress(Number(params.id))
     }
   }, [])
+
+  // 加载地址详情
+  const loadAddress = async (id: number) => {
+    try {
+      const res: any = await get(`/address/detail/${id}`)
+      if (res.code === 0 && res.data) {
+        const data = res.data
+        setForm({
+          name: data.name,
+          phone: data.phone,
+          province: data.province,
+          city: data.city,
+          district: data.district,
+          detail: data.detail,
+          isDefault: !!data.is_default,
+        })
+      }
+    } catch (error) {
+      console.error('加载地址失败:', error)
+      Taro.showToast({ title: '加载失败', icon: 'none' })
+      setTimeout(() => Taro.navigateBack(), 1500)
+    }
+  }
 
   // 更新表单字段
   const updateField = (field: keyof AddressForm, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }))
-  }
-
-  // 选择省市区
-  const chooseRegion = () => {
-    Taro.chooseLocation({
-      success: (res) => {
-        // 实际项目中使用省市区选择器
-        console.log('选择地址:', res)
-      },
-    })
   }
 
   // 表单验证
@@ -65,8 +71,12 @@ const AddressEdit = () => {
       Taro.showToast({ title: '请输入收货人姓名', icon: 'none' })
       return false
     }
-    if (!form.phone.trim() || form.phone.length !== 11) {
+    if (!form.phone.trim() || !/^1[3-9]\d{9}$/.test(form.phone)) {
       Taro.showToast({ title: '请输入正确的手机号', icon: 'none' })
+      return false
+    }
+    if (!form.province || !form.city || !form.district) {
+      Taro.showToast({ title: '请选择省市区', icon: 'none' })
       return false
     }
     if (!form.detail.trim()) {
@@ -77,23 +87,45 @@ const AddressEdit = () => {
   }
 
   // 保存地址
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return
 
-    Taro.showLoading({ title: '保存中...' })
-
-    // 模拟保存请求
-    setTimeout(() => {
-      Taro.hideLoading()
-      Taro.showToast({
-        title: isEdit ? '修改成功' : '添加成功',
-        icon: 'success',
-        duration: 1500,
-      })
+    setSaving(true)
+    try {
+      if (isEdit) {
+        // 更新地址
+        await put(`/address/update/${addressId}`, {
+          name: form.name,
+          phone: form.phone,
+          province: form.province,
+          city: form.city,
+          district: form.district,
+          detail: form.detail,
+          isDefault: form.isDefault,
+        })
+        Taro.showToast({ title: '修改成功', icon: 'success', duration: 1500 })
+      } else {
+        // 新增地址
+        await post('/address/add', {
+          name: form.name,
+          phone: form.phone,
+          province: form.province,
+          city: form.city,
+          district: form.district,
+          detail: form.detail,
+          isDefault: form.isDefault,
+        })
+        Taro.showToast({ title: '添加成功', icon: 'success', duration: 1500 })
+      }
       setTimeout(() => {
         Taro.navigateBack()
       }, 1500)
-    }, 500)
+    } catch (error) {
+      console.error('保存失败:', error)
+      Taro.showToast({ title: '保存失败', icon: 'none' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -126,13 +158,27 @@ const AddressEdit = () => {
         </View>
 
         {/* 所在地区 */}
-        <View className='form-item' onClick={chooseRegion}>
+        <View className='form-item'>
           <Text className='form-item__label'>所在地区</Text>
-          <View className='form-item__value'>
-            <Text className={form.province ? '' : 'form-item__placeholder'}>
-              {form.province ? `${form.province} ${form.city} ${form.district}` : '请选择省/市/区'}
-            </Text>
-            <Text className='form-item__arrow'>›</Text>
+          <View className='form-item__inputs'>
+            <Input
+              className='form-item__input-small'
+              placeholder='省'
+              value={form.province}
+              onInput={(e) => updateField('province', e.detail.value)}
+            />
+            <Input
+              className='form-item__input-small'
+              placeholder='市'
+              value={form.city}
+              onInput={(e) => updateField('city', e.detail.value)}
+            />
+            <Input
+              className='form-item__input-small'
+              placeholder='区'
+              value={form.district}
+              onInput={(e) => updateField('district', e.detail.value)}
+            />
           </View>
         </View>
 
@@ -161,8 +207,11 @@ const AddressEdit = () => {
 
       {/* 保存按钮 */}
       <View className='address-edit__footer safe-area-bottom'>
-        <View className='address-edit__save-btn' onClick={handleSave}>
-          <Text>保存</Text>
+        <View
+          className={`address-edit__save-btn ${saving ? 'address-edit__save-btn--disabled' : ''}`}
+          onClick={saving ? undefined : handleSave}
+        >
+          <Text>{saving ? '保存中...' : '保存'}</Text>
         </View>
       </View>
     </View>

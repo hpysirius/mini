@@ -341,6 +341,7 @@ router.delete('/categories/:id', async (req, res) => {
 
 // ============ 订单管理 ============
 
+// 获取订单列表
 router.get('/orders', async (req, res) => {
   try {
     const { page = 1, pageSize = 10, status, orderNo } = req.query;
@@ -368,6 +369,31 @@ router.get('/orders', async (req, res) => {
     res.json({ code: 0, msg: 'success', data: { list, total: countResult[0].total } });
   } catch (err) {
     console.error('Admin orders error:', err);
+    res.json({ code: 500, msg: '服务器错误' });
+  }
+});
+
+// 获取订单详情
+router.get('/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [orders] = await pool.query(
+      'SELECT o.*, u.nickname, u.phone as user_phone FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = ?',
+      [id]
+    );
+
+    if (orders.length === 0) {
+      return res.json({ code: 404, msg: '订单不存在' });
+    }
+
+    const order = orders[0];
+    const [items] = await pool.query('SELECT * FROM order_items WHERE order_id = ?', [id]);
+    order.items = items;
+
+    res.json({ code: 0, msg: 'success', data: order });
+  } catch (err) {
+    console.error('Admin order detail error:', err);
     res.json({ code: 500, msg: '服务器错误' });
   }
 });

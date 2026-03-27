@@ -1,41 +1,53 @@
 import { useEffect, useState } from 'react'
 import {
-  Table, Button, Space, Modal, Tag, Tabs, Input, message, Descriptions, Divider,
+  Table, Button, Space, Modal, Tag, Tabs, Input, message, Descriptions, Divider, Form,
 } from 'antd'
 import { EyeOutlined, TruckOutlined } from '@ant-design/icons'
 import request from '../../utils/request'
 import dayjs from 'dayjs'
 
+interface OrderItem {
+  id: number
+  product_id: number
+  product_name: string
+  product_image: string
+  price: number
+  quantity: number
+  specs?: string
+}
+
 interface Order {
   id: number
-  orderNo: string
-  userId: number
-  userName: string
-  totalAmount: number
+  order_no: string
+  user_id: number
+  nickname: string
+  user_phone: string
+  total_amount: number
+  pay_amount: number
   status: number
-  expressNo?: string
-  items?: any[]
-  address?: string
-  phone?: string
-  createdAt: string
+  shipping_company?: string
+  shipping_no?: string
+  address_snapshot?: string
+  items?: OrderItem[]
+  created_at: string
 }
 
 /** 订单状态 */
 const statusTabs = [
   { key: '', label: '全部' },
   { key: '0', label: '待支付' },
-  { key: '1', label: '待发货' },
-  { key: '2', label: '已发货' },
-  { key: '3', label: '已完成' },
-  { key: '4', label: '已取消' },
+  { key: '10', label: '待发货' },
+  { key: '20', label: '已发货' },
+  { key: '30', label: '已完成' },
+  { key: '-1', label: '已取消' },
 ]
 
 const statusMap: Record<number, { color: string; text: string }> = {
   0: { color: 'orange', text: '待支付' },
-  1: { color: 'blue', text: '待发货' },
-  2: { color: 'cyan', text: '已发货' },
-  3: { color: 'green', text: '已完成' },
-  4: { color: 'red', text: '已取消' },
+  10: { color: 'blue', text: '待发货' },
+  20: { color: 'cyan', text: '已发货' },
+  30: { color: 'green', text: '已完成' },
+  '-1': { color: 'red', text: '已取消' },
 }
 
 export default function Order() {
@@ -48,7 +60,7 @@ export default function Order() {
   const [detail, setDetail] = useState<Order | null>(null)
   const [shipOpen, setShipOpen] = useState(false)
   const [shipOrder, setShipOrder] = useState<Order | null>(null)
-  const [expressNo, setExpressNo] = useState('')
+  const [shipForm] = Form.useForm()
 
   useEffect(() => { fetchData() }, [page, status])
 
@@ -56,52 +68,84 @@ export default function Order() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res: any = await request.get('/orders', {
-        params: { page, pageSize: 10, status: status || undefined },
-      })
+      const params: any = { page, pageSize: 10 }
+      if (status) params.status = status
+      const res: any = await request.get('/orders', { params })
       setList(res.data?.list || [])
       setTotal(res.data?.total || 0)
-    } catch { /* handled */ }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error('获取订单列表失败:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   /** 查看订单详情 */
   const viewDetail = async (record: Order) => {
     try {
       const res: any = await request.get(`/orders/${record.id}`)
-      setDetail(res)
+      setDetail(res.data || res)
       setDetailOpen(true)
-    } catch {
+    } catch (e) {
       setDetail(record)
       setDetailOpen(true)
     }
   }
 
+  /** 打开发货弹窗 */
+  const openShipModal = (record: Order) => {
+    setShipOrder(record)
+    setShipOpen(true)
+    shipForm.resetFields()
+  }
+
   /** 发货 */
   const handleShip = async () => {
     if (!shipOrder) return
-    if (!expressNo.trim()) {
-      message.warning('请输入快递单号')
-      return
-    }
     try {
-      await request.put(`/orders/${shipOrder.id}/ship`, { expressNo })
+      const values = await shipForm.validateFields()
+      await request.put(`/orders/${shipOrder.id}/ship`, {
+        shippingCompany: values.shippingCompany,
+        shippingNo: values.shippingNo,
+      })
       message.success('发货成功')
       setShipOpen(false)
       setShipOrder(null)
-      setExpressNo('')
       fetchData()
-    } catch { /* handled */ }
+    } catch (e: any) {
+      console.error('发货失败:', e)
+      if (e?.response?.data?.msg) {
+        message.error(e.response.data.msg)
+      }
+    }
+  }
+
+  /** 解析地址快照 */
+  const parseAddress = (snapshot?: string) => {
+    if (!snapshot) return '-'
+    try {
+      const addr = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot
+      return `${addr.province}${addr.city}${addr.district}${addr.detail}`
+    } catch {
+      return snapshot
+    }
   }
 
   const columns = [
-    { title: '订单号', dataIndex: 'orderNo', key: 'orderNo' },
-    { title: '用户', dataIndex: 'userName', key: 'userName' },
-    { title: '金额', dataIndex: 'totalAmount', key: 'totalAmount', render: (v: number) => `¥${v}` },
+    { title: '订单号', dataIndex: 'order_no', key: 'order_no', width: 180 },
+    { title: '用户', dataIndex: 'nickname', key: 'nickname', width: 100 },
+    {
+      title: '金额',
+      dataIndex: 'pay_amount',
+      key: 'pay_amount',
+      width: 100,
+      render: (v: number) => `¥${v}`,
+    },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (v: number) => {
         const s = statusMap[v] || { color: 'default', text: '未知' }
         return <Tag color={s.color}>{s.text}</Tag>
@@ -109,25 +153,27 @@ export default function Order() {
     },
     {
       title: '下单时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 160,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
     },
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 150,
+      fixed: 'right',
       render: (_: any, record: Order) => (
         <Space size="small">
           <Button size="small" icon={<EyeOutlined />} onClick={() => viewDetail(record)}>
             详情
           </Button>
-          {record.status === 1 && (
+          {record.status === 10 && (
             <Button
               size="small"
               type="primary"
               icon={<TruckOutlined />}
-              onClick={() => { setShipOrder(record); setShipOpen(true) }}
+              onClick={() => openShipModal(record)}
             >
               发货
             </Button>
@@ -159,6 +205,7 @@ export default function Order() {
           total,
           onChange: (p) => setPage(p),
         }}
+        scroll={{ x: 1000 }}
       />
 
       {/* 订单详情 */}
@@ -172,17 +219,25 @@ export default function Order() {
         {detail && (
           <>
             <Descriptions column={2} bordered size="small">
-              <Descriptions.Item label="订单号">{detail.orderNo}</Descriptions.Item>
-              <Descriptions.Item label="用户">{detail.userName}</Descriptions.Item>
-              <Descriptions.Item label="金额">¥{detail.totalAmount}</Descriptions.Item>
+              <Descriptions.Item label="订单号">{detail.order_no}</Descriptions.Item>
+              <Descriptions.Item label="用户">{detail.nickname || `ID:${detail.user_id}`}</Descriptions.Item>
+              <Descriptions.Item label="订单金额">¥{detail.total_amount}</Descriptions.Item>
+              <Descriptions.Item label="实付金额">¥{detail.pay_amount}</Descriptions.Item>
               <Descriptions.Item label="状态">
                 {statusMap[detail.status]?.text || '未知'}
               </Descriptions.Item>
-              <Descriptions.Item label="收货地址" span={2}>{detail.address || '-'}</Descriptions.Item>
-              <Descriptions.Item label="联系电话">{detail.phone || '-'}</Descriptions.Item>
-              <Descriptions.Item label="快递单号">{detail.expressNo || '-'}</Descriptions.Item>
+              <Descriptions.Item label="联系电话">{detail.user_phone || '-'}</Descriptions.Item>
+              <Descriptions.Item label="收货地址" span={2}>
+                {parseAddress(detail.address_snapshot)}
+              </Descriptions.Item>
+              {detail.shipping_company && (
+                <Descriptions.Item label="快递公司">{detail.shipping_company}</Descriptions.Item>
+              )}
+              {detail.shipping_no && (
+                <Descriptions.Item label="快递单号">{detail.shipping_no}</Descriptions.Item>
+              )}
               <Descriptions.Item label="下单时间" span={2}>
-                {detail.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                {detail.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
               </Descriptions.Item>
             </Descriptions>
             {detail.items && detail.items.length > 0 && (
@@ -194,10 +249,21 @@ export default function Order() {
                   size="small"
                   pagination={false}
                   columns={[
-                    { title: '商品', dataIndex: 'name', key: 'name' },
-                    { title: '单价', dataIndex: 'price', key: 'price', render: (v: number) => `¥${v}` },
-                    { title: '数量', dataIndex: 'quantity', key: 'quantity' },
-                    { title: '小计', key: 'subtotal', render: (_: any, r: any) => `¥${r.price * r.quantity}` },
+                    { title: '商品', dataIndex: 'product_name', key: 'product_name', ellipsis: true },
+                    {
+                      title: '单价',
+                      dataIndex: 'price',
+                      key: 'price',
+                      width: 100,
+                      render: (v: number) => `¥${v}`,
+                    },
+                    { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80 },
+                    {
+                      title: '小计',
+                      key: 'subtotal',
+                      width: 100,
+                      render: (_: any, r: any) => `¥${r.price * r.quantity}`,
+                    },
                   ]}
                 />
               </>
@@ -210,15 +276,26 @@ export default function Order() {
       <Modal
         title="发货"
         open={shipOpen}
-        onCancel={() => { setShipOpen(false); setShipOrder(null); setExpressNo('') }}
+        onCancel={() => { setShipOpen(false); setShipOrder(null); shipForm.resetFields() }}
         onOk={handleShip}
       >
-        <p>订单号：{shipOrder?.orderNo}</p>
-        <Input
-          placeholder="请输入快递单号"
-          value={expressNo}
-          onChange={(e) => setExpressNo(e.target.value)}
-        />
+        <p style={{ marginBottom: 16 }}>订单号：{shipOrder?.order_no}</p>
+        <Form form={shipForm} layout="vertical">
+          <Form.Item
+            name="shippingCompany"
+            label="快递公司"
+            rules={[{ required: true, message: '请输入快递公司' }]}
+          >
+            <Input placeholder="例如：顺丰快递" />
+          </Form.Item>
+          <Form.Item
+            name="shippingNo"
+            label="快递单号"
+            rules={[{ required: true, message: '请输入快递单号' }]}
+          >
+            <Input placeholder="请输入快递单号" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   )

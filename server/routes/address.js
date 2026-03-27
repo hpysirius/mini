@@ -22,6 +22,27 @@ router.get('/list', async (req, res) => {
   }
 });
 
+// GET /api/address/detail/:id - 地址详情
+router.get('/detail/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [addresses] = await pool.query(
+      'SELECT * FROM addresses WHERE id = ? AND user_id = ?',
+      [id, req.userId]
+    );
+
+    if (addresses.length === 0) {
+      return res.json({ code: 404, msg: '地址不存在' });
+    }
+
+    res.json({ code: 0, msg: 'success', data: addresses[0] });
+  } catch (err) {
+    console.error('Address detail error:', err);
+    res.json({ code: 500, msg: '服务器错误' });
+  }
+});
+
 // POST /api/address/add - 添加地址
 router.post('/add', [
   body('name').notEmpty().withMessage('收件人不能为空').isLength({ max: 32 }),

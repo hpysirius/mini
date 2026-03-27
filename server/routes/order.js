@@ -167,9 +167,13 @@ router.get('/list', async (req, res) => {
     let where = 'WHERE o.user_id = ?';
     const params = [req.userId];
 
-    if (status !== undefined && status !== '') {
-      where += ' AND o.status = ?';
-      params.push(parseInt(status));
+    // 修复：正确处理 status 参数，避免 NaN
+    if (status !== undefined && status !== '' && status !== 'undefined') {
+      const statusNum = parseInt(status);
+      if (!isNaN(statusNum)) {
+        where += ' AND o.status = ?';
+        params.push(statusNum);
+      }
     }
 
     const [countResult] = await pool.query(

@@ -1,46 +1,47 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { get, put, del } from '../../utils/request'
 import './index.scss'
 
 interface CartItem {
   id: number
-  productId: number
+  product_id: number
   name: string
   image: string
   price: number
-  skuText: string
+  specs?: string
   quantity: number
   checked: boolean
+  stock: number
+  is_on_sale: number
 }
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isAllChecked, setIsAllChecked] = useState(true)
-  const [isEmpty, setIsEmpty] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isEmpty, setIsEmpty] = useState(true)
 
   useEffect(() => {
-    // 模拟购物车数据
-    const mockItems: CartItem[] = [
-      {
-        id: 1, productId: 1, name: 'Apple iPhone 15 Pro Max 256GB',
-        image: 'https://via.placeholder.com/180x180/f5f5f5/333?text=iPhone',
-        price: 9999, skuText: '原色钛金属 / 256GB', quantity: 1, checked: true,
-      },
-      {
-        id: 2, productId: 2, name: 'AirPods Pro (第二代)',
-        image: 'https://via.placeholder.com/180x180/f5f5f5/333?text=AirPods',
-        price: 1499, skuText: '白色 / USB-C', quantity: 2, checked: true,
-      },
-      {
-        id: 3, productId: 3, name: '小米14 Ultra 5G手机',
-        image: 'https://via.placeholder.com/180x180/f5f5f5/333?text=Mi14',
-        price: 6499, skuText: '黑色 / 16+512GB', quantity: 1, checked: true,
-      },
-    ]
-    setCartItems(mockItems)
-    setIsEmpty(mockItems.length === 0)
+    loadCart()
   }, [])
+
+  // 加载购物车数据
+  const loadCart = async () => {
+    setIsLoading(true)
+    try {
+      const res: any = await get('/cart/list')
+      const items = res.data?.list || []
+      setCartItems(items)
+      setIsEmpty(items.length === 0)
+      setIsAllChecked(items.length > 0 && items.every((item: any) => item.checked))
+    } catch (error) {
+      console.error('加载购物车失败:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // 计算总价
   const totalPrice = cartItems
@@ -51,32 +52,67 @@ const Cart = () => {
   const checkedCount = cartItems.filter((item) => item.checked).length
 
   // 切换商品选中状态
-  const toggleCheck = (id: number) => {
-    const newItems = cartItems.map((item) =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    )
-    setCartItems(newItems)
-    setIsAllChecked(newItems.every((item) => item.checked))
+  const toggleCheck = async (id: number) => {
+    const item = cartItems.find(i => i.id === id)
+    if (!item) return
+
+    try {
+      await put('/cart/check', { id, checked: !item.checked })
+      setCartItems(cartItems.map(i =>
+        i.id === id ? { ...i, checked: !i.checked } : i
+      ))
+      updateAllCheckedState()
+    } catch (error) {
+      console.error('更新选中状态失败:', error)
+    }
   }
 
   // 全选/取消全选
-  const toggleAll = () => {
+  const toggleAll = async () => {
     const newChecked = !isAllChecked
-    setCartItems(cartItems.map((item) => ({ ...item, checked: newChecked })))
-    setIsAllChecked(newChecked)
+    try {
+      // 批量更新
+      const promises = cartItems.map(item =>
+        put('/cart/check', { id: item.id, checked: newChecked })
+      )
+      await Promise.all(promises)
+      setCartItems(cartItems.map(item => ({ ...item, checked: newChecked })))
+      setIsAllChecked(newChecked)
+    } catch (error) {
+      console.error('全选更新失败:', error)
+      // 失败时回滚本地状态
+      loadCart()
+    }
+  }
+
+  // 更新全选状态
+  const updateAllCheckedState = () => {
+    const newItems = cartItems
+    const allChecked = newItems.length > 0 && newItems.every(item => item.checked)
+    setIsAllChecked(allChecked)
   }
 
   // 修改数量
-  const changeQuantity = (id: number, delta: number) => {
-    setCartItems(
-      cartItems.map((item) => {
-        if (item.id === id) {
-          const newQty = Math.max(1, item.quantity + delta)
-          return { ...item, quantity: newQty }
-        }
-        return item
-      })
-    )
+  const changeQuantity = async (id: number, delta: number) => {
+    const item = cartItems.find(i => i.id === id)
+    if (!item) return
+
+    const newQty = Math.max(1, item.quantity + delta)
+    if (newQty > item.stock) {
+      Taro.showToast({ title: '库存不足', icon: 'none' })
+      return
+    }
+
+    try {
+      await put('/cart/update', { id, quantity: newQty })
+      setCartItems(cartItems.map(i =>
+        i.id === id ? { ...i, quantity: newQty } : i
+      ))
+    } catch (error) {
+      console.error('更新数量失败:', error)
+      // 失败时回滚
+      loadCart()
+    }
   }
 
   // 删除商品
@@ -84,12 +120,18 @@ const Cart = () => {
     Taro.showModal({
       title: '提示',
       content: '确定要删除该商品吗？',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          const newItems = cartItems.filter((item) => item.id !== id)
-          setCartItems(newItems)
-          setIsEmpty(newItems.length === 0)
-          setIsAllChecked(newItems.every((item) => item.checked))
+          try {
+            await del('/cart/remove', { ids: [id] })
+            const newItems = cartItems.filter((item) => item.id !== id)
+            setCartItems(newItems)
+            setIsEmpty(newItems.length === 0)
+            updateAllCheckedState()
+          } catch (error) {
+            console.error('删除失败:', error)
+            Taro.showToast({ title: '删除失败', icon: 'none' })
+          }
         }
       },
     })
@@ -102,9 +144,15 @@ const Cart = () => {
       Taro.showToast({ title: '请选择要结算的商品', icon: 'none' })
       return
     }
-    // 将选中的商品 ID 传给确认订单页
-    const ids = checkedItems.map((item) => item.id).join(',')
-    Taro.navigateTo({ url: `/pages/order/confirm?cartIds=${ids}` })
+
+    // 检查商品是否下架
+    const offShelfItems = checkedItems.filter(item => !item.is_on_sale)
+    if (offShelfItems.length > 0) {
+      Taro.showToast({ title: '有商品已下架，请取消选择', icon: 'none' })
+      return
+    }
+
+    Taro.navigateTo({ url: '/pages/order/confirm' })
   }
 
   // 去逛逛
@@ -117,7 +165,8 @@ const Cart = () => {
     Taro.navigateTo({ url: `/pages/product/detail?id=${productId}` })
   }
 
-  if (isEmpty) {
+  // 显示为空时
+  if (isEmpty && !isLoading) {
     return (
       <View className='cart cart--empty'>
         <View className='empty-state'>
@@ -150,28 +199,37 @@ const Cart = () => {
             </View>
 
             {/* 商品信息 */}
-            <View className='cart-item__content' onClick={() => goToDetail(item.productId)}>
+            <View className='cart-item__content' onClick={() => goToDetail(item.product_id)}>
               <Image className='cart-item__image' src={item.image} mode='aspectFill' />
               <View className='cart-item__info'>
                 <Text className='cart-item__name'>{item.name}</Text>
-                <Text className='cart-item__sku'>{item.skuText}</Text>
+                {item.specs && <Text className='cart-item__sku'>{item.specs}</Text>}
+                {!item.is_on_sale && (
+                  <Text className='cart-item__offshelf'>已下架</Text>
+                )}
                 <View className='cart-item__bottom'>
-                  <Text className='cart-item__price'>¥{item.price}</Text>
-                  <View className='cart-item__quantity' onClick={(e) => e.stopPropagation()}>
-                    <View
-                      className='cart-item__btn'
-                      onClick={() => changeQuantity(item.id, -1)}
-                    >
-                      <Text>-</Text>
-                    </View>
-                    <Text className='cart-item__num'>{item.quantity}</Text>
-                    <View
-                      className='cart-item__btn'
-                      onClick={() => changeQuantity(item.id, 1)}
-                    >
-                      <Text>+</Text>
-                    </View>
-                  </View>
+                  {item.is_on_sale ? (
+                    <>
+                      <Text className='cart-item__price'>¥{item.price}</Text>
+                      <View className='cart-item__quantity' onClick={(e) => e.stopPropagation()}>
+                        <View
+                          className='cart-item__btn'
+                          onClick={() => changeQuantity(item.id, -1)}
+                        >
+                          <Text>-</Text>
+                        </View>
+                        <Text className='cart-item__num'>{item.quantity}</Text>
+                        <View
+                          className='cart-item__btn'
+                          onClick={() => changeQuantity(item.id, 1)}
+                        >
+                          <Text>+</Text>
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    <Text className='cart-item__price-disabled'>商品已下架</Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -185,26 +243,31 @@ const Cart = () => {
       </ScrollView>
 
       {/* 底部结算栏 */}
-      <View className='cart-footer safe-area-bottom'>
-        <View className='cart-footer__left'>
-          <View
-            className={`cart-footer__check ${isAllChecked ? 'cart-footer__check--active' : ''}`}
-            onClick={toggleAll}
-          >
-            {isAllChecked && <Text className='cart-footer__check-icon'>✓</Text>}
+      {!isEmpty && (
+        <View className='cart-footer safe-area-bottom'>
+          <View className='cart-footer__left'>
+            <View
+              className={`cart-footer__check ${isAllChecked ? 'cart-footer__check--active' : ''}`}
+              onClick={toggleAll}
+            >
+              {isAllChecked && <Text className='cart-footer__check-icon'>✓</Text>}
+            </View>
+            <Text className='cart-footer__all'>全选</Text>
           </View>
-          <Text className='cart-footer__all'>全选</Text>
+          <View className='cart-footer__right'>
+            <View className='cart-footer__total'>
+              <Text className='cart-footer__label'>合计：</Text>
+              <Text className='cart-footer__price'>¥{totalPrice.toFixed(2)}</Text>
+            </View>
+            <View
+              className={`cart-footer__btn ${checkedCount === 0 ? 'cart-footer__btn--disabled' : ''}`}
+              onClick={checkedCount > 0 ? handleCheckout : undefined}
+            >
+              <Text>去结算 ({checkedCount})</Text>
+            </View>
+          </View>
         </View>
-        <View className='cart-footer__right'>
-          <View className='cart-footer__total'>
-            <Text className='cart-footer__label'>合计：</Text>
-            <Text className='cart-footer__price'>¥{totalPrice.toFixed(2)}</Text>
-          </View>
-          <View className='cart-footer__btn' onClick={handleCheckout}>
-            <Text>去结算({checkedCount})</Text>
-          </View>
-        </View>
-      </View>
+      )}
     </View>
   )
 }

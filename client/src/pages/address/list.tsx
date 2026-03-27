@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { get, del } from '../../utils/request'
 import './list.scss'
 
 interface Address {
@@ -21,35 +22,42 @@ const AddressList = () => {
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params
     setIsSelectMode(params?.select === 'true')
-
-    // 模拟地址数据
-    setAddresses([
-      {
-        id: 1,
-        name: '张三',
-        phone: '138****8888',
-        province: '广东省',
-        city: '深圳市',
-        district: '南山区',
-        detail: '科技园南区xx大厦xx号',
-        isDefault: true,
-      },
-      {
-        id: 2,
-        name: '李四',
-        phone: '139****9999',
-        province: '北京市',
-        city: '北京市',
-        district: '朝阳区',
-        detail: '建国路xx号xx小区xx栋',
-        isDefault: false,
-      },
-    ])
+    loadAddresses()
   }, [])
+
+  // 加载地址列表
+  const loadAddresses = async () => {
+    try {
+      const res: any = await get('/address/list')
+      if (res.data) {
+        setAddresses(res.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          phone: item.phone,
+          province: item.province,
+          city: item.city,
+          district: item.district,
+          detail: item.detail,
+          isDefault: !!item.is_default,
+        })))
+      }
+    } catch (error) {
+      console.error('加载地址失败:', error)
+    }
+  }
 
   // 选择地址（确认订单时使用）
   const selectAddress = (address: Address) => {
     if (isSelectMode) {
+      // 通过事件传回选中的地址
+      const pages = Taro.getCurrentPages()
+      const currentPage = pages[pages.length - 1] as any
+      // 获取打开当前页面时传入的 eventChannel
+      const eventChannel = currentPage.getOpenerEventChannel?.()
+
+      if (eventChannel) {
+        eventChannel.emit('addressSelected', address)
+      }
       Taro.navigateBack()
     }
   }
@@ -61,14 +69,20 @@ const AddressList = () => {
   }
 
   // 删除地址
-  const deleteAddress = (id: number) => {
+  const deleteAddress = async (id: number) => {
     Taro.showModal({
       title: '提示',
       content: '确定要删除该地址吗？',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          setAddresses(addresses.filter((addr) => addr.id !== id))
-          Taro.showToast({ title: '删除成功', icon: 'success' })
+          try {
+            await del(`/address/remove/${id}`)
+            loadAddresses()
+            Taro.showToast({ title: '删除成功', icon: 'success' })
+          } catch (error) {
+            console.error('删除失败:', error)
+            Taro.showToast({ title: '删除失败', icon: 'none' })
+          }
         }
       },
     })

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image, Textarea, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { post, get } from '../../utils/request'
 import './confirm.scss'
 
 interface Address {
@@ -14,95 +15,134 @@ interface Address {
   isDefault: boolean
 }
 
-interface OrderItem {
+interface CartItem {
   id: number
+  productId: number
+  skuId?: number
   name: string
   image: string
-  skuText: string
   price: number
   quantity: number
-}
-
-interface Coupon {
-  id: number
-  name: string
-  value: number
-  condition: string
+  specs?: string
 }
 
 const OrderConfirm = () => {
   const [address, setAddress] = useState<Address | null>(null)
-  const [items, setItems] = useState<OrderItem[]>([])
-  const [coupon, setCoupon] = useState<Coupon | null>(null)
+  const [items, setItems] = useState<CartItem[]>([])
   const [remark, setRemark] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    // 模拟默认地址
-    setAddress({
-      id: 1,
-      name: '张三',
-      phone: '138****8888',
-      province: '广东省',
-      city: '深圳市',
-      district: '南山区',
-      detail: '科技园南区xx大厦xx号',
-      isDefault: true,
-    })
-
-    // 模拟订单商品
-    setItems([
-      {
-        id: 1,
-        name: 'Apple iPhone 15 Pro Max 256GB',
-        image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=iPhone',
-        skuText: '原色钛金属 / 256GB',
-        price: 9999,
-        quantity: 1,
-      },
-      {
-        id: 2,
-        name: 'AirPods Pro (第二代)',
-        image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=AirPods',
-        skuText: '白色 / USB-C',
-        price: 1499,
-        quantity: 1,
-      },
-    ])
+    loadAddress()
+    loadOrderItems()
   }, [])
+
+  // 获取默认地址
+  const loadAddress = async () => {
+    try {
+      const res: any = await get('/address/list')
+      if (res.data?.length > 0) {
+        const defaultAddr = res.data.find((a: any) => a.is_default) || res.data[0]
+        setAddress({
+          id: defaultAddr.id,
+          name: defaultAddr.name,
+          phone: defaultAddr.phone,
+          province: defaultAddr.province,
+          city: defaultAddr.city,
+          district: defaultAddr.district,
+          detail: defaultAddr.detail,
+          isDefault: defaultAddr.is_default,
+        })
+      }
+    } catch (e) {
+      console.log('获取地址失败', e)
+    }
+  }
+
+  // 加载订单商品（从购物车选中项）
+  const loadOrderItems = async () => {
+    try {
+      const res: any = await get('/cart/list')
+      const checkedItems = res.data?.list?.filter((item: any) => item.checked) || []
+      if (checkedItems.length === 0) {
+        Taro.showToast({ title: '购物车没有选中商品', icon: 'none' })
+        setTimeout(() => Taro.navigateBack(), 1500)
+        return
+      }
+      setItems(checkedItems.map((item: any) => ({
+        id: item.id,
+        productId: item.product_id,
+        skuId: item.sku_id,
+        name: item.product_name,
+        image: item.product_image,
+        price: item.price,
+        quantity: item.quantity,
+        specs: item.specs,
+      })))
+    } catch (e) {
+      console.log('加载商品失败', e)
+      Taro.showToast({ title: '加载失败', icon: 'none' })
+      setTimeout(() => Taro.navigateBack(), 1500)
+    }
+  }
 
   // 商品总价
   const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   // 运费
   const freight = totalPrice >= 99 ? 0 : 10
-  // 优惠券优惠
-  const couponDiscount = coupon ? coupon.value : 0
   // 实付金额
-  const payAmount = totalPrice + freight - couponDiscount
+  const payAmount = totalPrice + freight
 
   // 选择地址
   const selectAddress = () => {
-    Taro.navigateTo({ url: '/pages/address/list?select=true' })
-  }
-
-  // 选择优惠券
-  const selectCoupon = () => {
-    Taro.showToast({ title: '优惠券功能开发中', icon: 'none' })
+    Taro.navigateTo({
+      url: '/pages/address/list?select=true',
+      events: {
+        addressSelected: (selectedAddress: Address) => {
+          setAddress(selectedAddress)
+        },
+      },
+    })
   }
 
   // 提交订单
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!address) {
       Taro.showToast({ title: '请先选择收货地址', icon: 'none' })
       return
     }
-    Taro.showLoading({ title: '提交中...' })
-    setTimeout(() => {
-      Taro.hideLoading()
+    if (items.length === 0) {
+      Taro.showToast({ title: '购物车没有选中商品', icon: 'none' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const result: any = await post('/order/create', {
+        addressId: address.id,
+        items: items.map(item => ({
+          productId: item.productId,
+          skuId: item.skuId,
+          quantity: item.quantity,
+        })),
+        remark,
+        fromCart: true,
+      })
+
       Taro.showToast({ title: '下单成功', icon: 'success', duration: 1500 })
       setTimeout(() => {
-        Taro.redirectTo({ url: '/pages/order/list?status=pending' })
+        Taro.redirectTo({ url: '/pages/order/list' })
       }, 1500)
-    }, 1000)
+    } catch (error: any) {
+      console.error('下单失败:', error)
+      let msg = '下单失败，请重试'
+      if (error?.message) {
+        msg = error.message
+      }
+      Taro.showToast({ title: msg, icon: 'none' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -139,7 +179,7 @@ const OrderConfirm = () => {
               <Image className='goods-item__image' src={item.image} mode='aspectFill' />
               <View className='goods-item__info'>
                 <Text className='goods-item__name'>{item.name}</Text>
-                <Text className='goods-item__sku'>{item.skuText}</Text>
+                <Text className='goods-item__sku'>{item.specs || ''}</Text>
                 <View className='goods-item__bottom'>
                   <Text className='goods-item__price'>¥{item.price}</Text>
                   <Text className='goods-item__quantity'>x{item.quantity}</Text>
@@ -150,17 +190,6 @@ const OrderConfirm = () => {
         </View>
 
         <View className='divider--thick' />
-
-        {/* 优惠券 */}
-        <View className='coupon-section' onClick={selectCoupon}>
-          <Text className='coupon-section__label'>优惠券</Text>
-          <View className='coupon-section__right'>
-            <Text className='coupon-section__value'>
-              {coupon ? `-¥${coupon.value}` : '暂无可用'}
-            </Text>
-            <Text className='coupon-section__arrow'>›</Text>
-          </View>
-        </View>
 
         {/* 运费 */}
         <View className='freight-section'>
@@ -190,12 +219,12 @@ const OrderConfirm = () => {
           <Text className='confirm-footer__count'>共{items.reduce((s, i) => s + i.quantity, 0)}件</Text>
           <Text className='confirm-footer__label'>合计：</Text>
           <Text className='confirm-footer__price'>¥{payAmount.toFixed(2)}</Text>
-          {couponDiscount > 0 && (
-            <Text className='confirm-footer__discount'>已优惠¥{couponDiscount}</Text>
-          )}
         </View>
-        <View className='confirm-footer__btn' onClick={handleSubmit}>
-          <Text>提交订单</Text>
+        <View
+          className={`confirm-footer__btn ${submitting ? 'confirm-footer__btn--disabled' : ''}`}
+          onClick={submitting ? undefined : handleSubmit}
+        >
+          <Text>{submitting ? '提交中...' : '提交订单'}</Text>
         </View>
       </View>
     </View>

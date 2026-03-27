@@ -214,7 +214,15 @@ INSERT INTO `categories` (`name`, `sort_order`) VALUES
 ('服装鞋帽', 4), ('食品饮料', 5), ('美妆个护', 6);
 
 -- 示例轮播
-INSERT INTO `banners` (`title`, `image`, `sort_order`) VALUES 
+INSERT INTO `banners` (`title`, `image`, `sort_order`) VALUES
 ('春季大促', '/uploads/banner1.jpg', 1),
 ('新品上市', '/uploads/banner2.jpg', 2),
 ('限时秒杀', '/uploads/banner3.jpg', 3);
+
+-- 示例商品
+INSERT INTO `products` (`category_id`, `name`, `subtitle`, `main_image`, `images`, `detail`, `price`, `original_price`, `stock`, `is_on_sale`) VALUES
+(1, 'Apple iPhone 15 Pro Max 256GB', '强大有芯 专业影像', 'https://via.placeholder.com/400x400/f5f5f5/333?text=iPhone15ProMax', '["https://via.placeholder.com/400x400/f5f5f5/333?text=iPhone15ProMax"]', '<p>iPhone 15 Pro Max 采用航空级钛金属设计，搭载 A17 Pro 芯片。</p>', 9999, 10999, 100, 1),
+(1, 'AirPods Pro (第二代)', '主动降噪 通透模式', 'https://via.placeholder.com/400x400/f5f5f5/333?text=AirPodsPro', '["https://via.placeholder.com/400x400/f5f5f5/333?text=AirPodsPro"]', '<p>AirPods Pro 支持主动降噪和通透模式。</p>', 1499, 1899, 200, 1),
+(1, 'Apple Watch Series 9', '智能手表 健康监测', 'https://via.placeholder.com/400x400/f5f5f5/333?text=AppleWatch', '["https://via.placeholder.com/400x400/f5f5f5/333?text=AppleWatch"]', '<p>Apple Watch Series 9 搭载 S9 芯片。</p>', 2999, 3299, 50, 1),
+(4, '小米 14 Ultra 5G 手机', '徕卡光学镜头 骁龙 8Gen3', 'https://via.placeholder.com/400x400/f5f5f5/333?text=Mi14Ultra', '["https://via.placeholder.com/400x400/f5f5f5/333?text=Mi14Ultra"]', '<p>小米 14 Ultra 搭载徕卡光学 Summilux 镜头。</p>', 6499, 6999, 80, 1),
+(4, '纯棉 T 恤 基础款', '舒适透气 多色可选', 'https://via.placeholder.com/400x400/f5f5f5/333?text=T-Shirt', '["https://via.placeholder.com/400x400/f5f5f5/333?text=T-Shirt"]', '<p>100% 纯棉材质，舒适透气。</p>', 99, 149, 500, 1);

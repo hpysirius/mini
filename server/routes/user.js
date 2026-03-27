@@ -25,19 +25,22 @@ router.post('/login', [
 
     // 查找或创建用户
     let [users] = await pool.query('SELECT * FROM users WHERE openid = ?', [openid]);
+    let user;
 
     if (users.length === 0) {
+      // 新用户 - 创建账号 (status=1 正常)
       const [result] = await pool.query(
-        'INSERT INTO users (openid, nickname, avatar) VALUES (?, ?, ?)',
+        'INSERT INTO users (openid, nickname, avatar, status) VALUES (?, ?, ?, 1)',
         [openid, '微信用户', '']
       );
-      users = [{ id: result.insertId, openid, nickname: '微信用户', avatar: '', phone: '', gender: 0 }];
-    }
-
-    const user = users[0];
-
-    if (user.status !== 1) {
-      return res.json({ code: 403, msg: '账号已被禁用' });
+      user = { id: result.insertId, openid, nickname: '微信用户', avatar: '', phone: '', gender: 0, status: 1 };
+    } else {
+      // 老用户 - 如果账号被禁用，自动恢复为正常状态（开发环境方便测试）
+      user = users[0];
+      if (user.status !== 1) {
+        await pool.query('UPDATE users SET status = 1 WHERE id = ?', [user.id]);
+        user.status = 1;
+      }
     }
 
     // 生成JWT

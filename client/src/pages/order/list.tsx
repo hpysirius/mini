@@ -1,109 +1,89 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { get, put } from '../../utils/request'
 import './list.scss'
 
 interface OrderItem {
   id: number
-  name: string
-  image: string
+  product_id: number
+  product_name: string
+  product_image: string
   price: number
   quantity: number
+  specs?: string
 }
 
 interface Order {
   id: number
-  orderNo: string
-  status: string
-  statusText: string
+  order_no: string
+  status: number
+  total_amount: number
+  pay_amount: number
+  created_at: string
   items: OrderItem[]
-  totalPrice: number
-  createTime: string
 }
 
 const statusTabs = [
-  { key: 'all', label: '全部' },
-  { key: 'pending', label: '待付款' },
-  { key: 'shipped', label: '待发货' },
-  { key: 'received', label: '待收货' },
-  { key: 'completed', label: '已完成' },
+  { key: '', label: '全部' },
+  { key: '0', label: '待付款' },
+  { key: '10', label: '待发货' },
+  { key: '20', label: '待收货' },
+  { key: '30', label: '已完成' },
+  { key: '-1', label: '已取消' },
 ]
 
 const OrderList = () => {
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
 
   useEffect(() => {
-    // 从页面参数获取初始 tab
     const params = Taro.getCurrentInstance().router?.params
-    if (params?.status) {
+    if (params?.status !== undefined) {
       setActiveTab(params.status)
+      loadOrders(params.status, 1)
+    } else {
+      loadOrders('', 1)
     }
-    loadOrders(params?.status || 'all')
   }, [])
 
   // 加载订单数据
-  const loadOrders = (status: string) => {
-    // 模拟订单数据
-    const mockOrders: Order[] = [
-      {
-        id: 1,
-        orderNo: '20240101000001',
-        status: 'pending',
-        statusText: '待付款',
-        items: [
-          { id: 1, name: 'Apple iPhone 15 Pro Max 256GB', image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=iPhone', price: 9999, quantity: 1 },
-        ],
-        totalPrice: 9999,
-        createTime: '2024-01-01 12:00:00',
-      },
-      {
-        id: 2,
-        orderNo: '20240102000002',
-        status: 'shipped',
-        statusText: '待发货',
-        items: [
-          { id: 2, name: 'AirPods Pro (第二代)', image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=AirPods', price: 1499, quantity: 2 },
-        ],
-        totalPrice: 2998,
-        createTime: '2024-01-02 10:30:00',
-      },
-      {
-        id: 3,
-        orderNo: '20240103000003',
-        status: 'received',
-        statusText: '待收货',
-        items: [
-          { id: 3, name: '小米14 Ultra 5G手机', image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=Mi14', price: 6499, quantity: 1 },
-          { id: 4, name: '手机壳 透明防摔款', image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=壳', price: 29, quantity: 1 },
-        ],
-        totalPrice: 6528,
-        createTime: '2024-01-03 08:15:00',
-      },
-      {
-        id: 4,
-        orderNo: '20240104000004',
-        status: 'completed',
-        statusText: '已完成',
-        items: [
-          { id: 5, name: 'Sony WH-1000XM5 蓝牙耳机', image: 'https://via.placeholder.com/160x160/f5f5f5/333?text=Sony', price: 2299, quantity: 1 },
-        ],
-        totalPrice: 2299,
-        createTime: '2024-01-04 16:45:00',
-      },
-    ]
+  const loadOrders = async (status: string, pageNum: number = 1) => {
+    if (loading) return
 
-    if (status === 'all') {
-      setOrders(mockOrders)
-    } else {
-      setOrders(mockOrders.filter((o) => o.status === status))
+    setLoading(true)
+    try {
+      const res: any = await get('/order/list', {
+        page: pageNum,
+        pageSize: 10,
+        status: status || undefined,
+      })
+
+      const newOrders = res.data?.list || []
+      if (pageNum === 1) {
+        setOrders(newOrders)
+      } else {
+        setOrders(prev => [...prev, ...newOrders])
+      }
+
+      setHasMore(newOrders.length === 10)
+      setPage(pageNum)
+    } catch (error) {
+      console.error('加载订单失败:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   // 切换 tab
   const handleTabChange = (key: string) => {
     setActiveTab(key)
-    loadOrders(key)
+    setPage(1)
+    setHasMore(true)
+    loadOrders(key, 1)
   }
 
   // 查看订单详情
@@ -111,13 +91,53 @@ const OrderList = () => {
     Taro.navigateTo({ url: `/pages/order/detail?id=${id}` })
   }
 
-  // 操作按钮文字
-  const getActionText = (status: string): string => {
+  // 操作订单
+  const handleAction = async (order: Order) => {
+    switch (order.status) {
+      case 0: // 待付款 - 去付款
+        Taro.showToast({ title: '支付功能开发中', icon: 'none' })
+        break
+      case 10: // 待发货 - 提醒发货
+        Taro.showToast({ title: '已提醒商家发货', icon: 'none' })
+        break
+      case 20: // 待收货 - 确认收货
+        Taro.showModal({
+          title: '确认收货',
+          content: '确认已收到商品吗？',
+          success: async (res) => {
+            if (res.confirm) {
+              try {
+                await put(`/order/confirm/${order.id}`)
+                Taro.showToast({ title: '确认收货成功', icon: 'success' })
+                loadOrders(activeTab, 1)
+              } catch (error) {
+                console.error('确认收货失败:', error)
+              }
+            }
+          },
+        })
+        break
+      case 30: // 已完成 - 再次购买
+        Taro.showToast({ title: '再次购买开发中', icon: 'none' })
+        break
+      case -1: // 已取消
+        break
+    }
+  }
+
+  // 获取状态文字
+  const getStatusText = (status: number): string => {
+    const tab = statusTabs.find(t => t.key === String(status))
+    return tab?.label || '未知'
+  }
+
+  // 获取操作按钮文字
+  const getActionText = (status: number): string => {
     switch (status) {
-      case 'pending': return '去付款'
-      case 'shipped': return '提醒发货'
-      case 'received': return '确认收货'
-      case 'completed': return '再次购买'
+      case 0: return '去付款'
+      case 10: return '提醒发货'
+      case 20: return '确认收货'
+      case 30: return '再次购买'
       default: return ''
     }
   }
@@ -140,7 +160,12 @@ const OrderList = () => {
 
       {/* 订单列表 */}
       <ScrollView scrollY className='order-list__content'>
-        {orders.length === 0 ? (
+        {loading && orders.length === 0 ? (
+          <View className='empty-state'>
+            <Text className='empty-state__icon'>⏳</Text>
+            <Text className='empty-state__text'>加载中...</Text>
+          </View>
+        ) : orders.length === 0 ? (
           <View className='empty-state'>
             <Text className='empty-state__icon'>📋</Text>
             <Text className='empty-state__text'>暂无订单</Text>
@@ -150,16 +175,17 @@ const OrderList = () => {
             <View className='order-card' key={order.id} onClick={() => goToDetail(order.id)}>
               {/* 订单头部 */}
               <View className='order-card__header'>
-                <Text className='order-card__no'>订单号: {order.orderNo}</Text>
-                <Text className='order-card__status'>{order.statusText}</Text>
+                <Text className='order-card__no'>订单号：{order.order_no}</Text>
+                <Text className='order-card__status'>{getStatusText(order.status)}</Text>
               </View>
 
               {/* 商品列表 */}
               {order.items.map((item) => (
                 <View className='order-card__goods' key={item.id}>
-                  <Image className='order-card__goods-image' src={item.image} mode='aspectFill' />
+                  <Image className='order-card__goods-image' src={item.product_image} mode='aspectFill' />
                   <View className='order-card__goods-info'>
-                    <Text className='order-card__goods-name'>{item.name}</Text>
+                    <Text className='order-card__goods-name'>{item.product_name}</Text>
+                    {item.specs && <Text className='order-card__goods-sku'>{item.specs}</Text>}
                     <View className='order-card__goods-bottom'>
                       <Text className='order-card__goods-price'>¥{item.price}</Text>
                       <Text className='order-card__goods-qty'>x{item.quantity}</Text>
@@ -171,14 +197,14 @@ const OrderList = () => {
               {/* 订单底部 */}
               <View className='order-card__footer'>
                 <Text className='order-card__total'>
-                  合计: <Text className='order-card__total-price'>¥{order.totalPrice}</Text>
+                  合计：<Text className='order-card__total-price'>¥{order.pay_amount}</Text>
                 </Text>
                 {getActionText(order.status) && (
                   <View
                     className='order-card__action'
                     onClick={(e) => {
                       e.stopPropagation()
-                      Taro.showToast({ title: getActionText(order.status), icon: 'none' })
+                      handleAction(order)
                     }}
                   >
                     <Text>{getActionText(order.status)}</Text>
@@ -187,6 +213,13 @@ const OrderList = () => {
               </View>
             </View>
           ))
+        )}
+
+        {/* 加载更多 */}
+        {!loading && hasMore && orders.length > 0 && (
+          <View className='load-more' onClick={() => loadOrders(activeTab, page + 1)}>
+            <Text>加载更多</Text>
+          </View>
         )}
       </ScrollView>
     </View>
