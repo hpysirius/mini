@@ -47,6 +47,8 @@ export default function Product() {
       // 将 snake_case 转为 camelCase
       const list = rawData.map((item: any) => ({
         ...item,
+        image: item.main_image,
+        images: item.images ? JSON.parse(item.images || '[]') : [],
         categoryName: item.category_name,
       }))
       setList(list)
