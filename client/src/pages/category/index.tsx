@@ -47,12 +47,12 @@ const CategoryPage = () => {
 
   // 根据分类 ID 加载商品
   const loadProducts = async (categoryId: number) => {
+    console.log(categoryId, 'categoryId');
     setLoading(true)
     try {
-      const res: any = await get('/product/list', {
-        params: { categoryId, page: 1, pageSize: 50 }
-      })
+      const res: any = await get('/product/list', { categoryId, page: 1, pageSize: 50 })
       const list = res.data?.list || []
+      console.log('商品列表:', list)
       setProducts(list.map((item: any) => ({
         id: item.id,
         name: item.name,
@@ -116,12 +116,15 @@ const CategoryPage = () => {
         {/* 右侧内容 - 商品列表 */}
         <ScrollView scrollY className='category-content'>
           {loading ? (
-            <View className='product-list-empty'>
-              <Text>加载中...</Text>
+            <View className='empty-state'>
+              <Text className='empty-state__icon'>⏳</Text>
+              <Text className='empty-state__text'>加载中...</Text>
             </View>
           ) : products.length === 0 ? (
-            <View className='product-list-empty'>
-              <Text className='product-list-empty__text'>暂无商品</Text>
+            <View className='empty-state'>
+              <Text className='empty-state__icon'>📦</Text>
+              <Text className='empty-state__text'>暂无商品</Text>
+              <Text className='empty-state__hint'>该分类下还没有商品哦</Text>
             </View>
           ) : (
             <View className='product-list'>
