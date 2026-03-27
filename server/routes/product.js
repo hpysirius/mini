@@ -19,7 +19,6 @@ router.get('/list', async (req, res) => {
 
     let where = 'WHERE p.is_on_sale = 1';
     const params = [];
-
     if (categoryId) {
       where += ' AND p.category_id = ?';
       params.push(categoryId);

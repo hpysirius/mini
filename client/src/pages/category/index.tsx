@@ -47,12 +47,10 @@ const CategoryPage = () => {
 
   // 根据分类 ID 加载商品
   const loadProducts = async (categoryId: number) => {
-    console.log(categoryId, 'categoryId');
     setLoading(true)
     try {
       const res: any = await get('/product/list', { categoryId, page: 1, pageSize: 50 })
       const list = res.data?.list || []
-      console.log('商品列表:', list)
       setProducts(list.map((item: any) => ({
         id: item.id,
         name: item.name,
