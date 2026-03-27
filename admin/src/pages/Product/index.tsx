@@ -70,18 +70,29 @@ export default function Product() {
   /** 新增/编辑提交 */
   const handleFinish = async (values: any) => {
     try {
+      // 将前端驼峰命名转换为后端 snake_case
+      const payload = {
+        ...values,
+        mainImage: values.image,
+        images: values.images ? (typeof values.images === 'string' ? values.images.split(',').map((s: string) => s.trim()) : values.images) : [],
+      }
+      delete payload.image
+
       if (editing) {
-        await request.put(`/products/${editing.id}`, values)
+        await request.put(`/products/${editing.id}`, payload)
         message.success('更新成功')
       } else {
-        await request.post('/products', values)
+        await request.post('/products', payload)
         message.success('创建成功')
       }
       setModalOpen(false)
       form.resetFields()
       setEditing(null)
       fetchData()
-    } catch { /* handled */ }
+    } catch (err: any) {
+      console.error('保存商品失败:', err)
+      message.error(err.response?.data?.msg || '操作失败')
+    }
   }
 
   /** 切换上下架 */
