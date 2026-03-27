@@ -12,7 +12,8 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { removeToken, getUser } from '../../utils/auth'
+import { getUser, removeToken } from '@/utils/auth'
+// import { removeToken, getUser } from '../../utils/auth'
 
 const { Header, Sider, Content } = Layout
 

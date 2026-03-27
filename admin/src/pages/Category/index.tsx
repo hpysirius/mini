@@ -24,7 +24,7 @@ export default function Category() {
     setLoading(true)
     try {
       const res: any = await request.get('/categories')
-      setList(res.list || res || [])
+      setList(res.data || [])
     } catch { /* handled */ }
     finally { setLoading(false) }
   }
@@ -113,7 +113,7 @@ export default function Category() {
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields() }}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Form.Item name="name" label="分类名称" rules={[{ required: true, message: '请输入分类名称' }]}>

@@ -48,7 +48,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const res: any = await request.get('/admins')
-      setList(res.list || res || [])
+      setList(res.data || [])
     } catch { /* handled */ }
     finally { setLoading(false) }
   }
@@ -153,7 +153,7 @@ export default function AdminPage() {
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields() }}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, Image, Swiper, SwiperItem, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { get } from '../../utils/request'
@@ -28,55 +28,72 @@ interface NavItem {
   icon: string
 }
 
+// 模拟分类数据（固定）
+const navItems: NavItem[] = [
+  { id: 1, name: '手机', icon: '📱' },
+  { id: 2, name: '电脑', icon: '💻' },
+  { id: 3, name: '家电', icon: '🏠' },
+  { id: 4, name: '服饰', icon: '👕' },
+  { id: 5, name: '美妆', icon: '💄' },
+  { id: 6, name: '食品', icon: '🍎' },
+  { id: 7, name: '母婴', icon: '👶' },
+  { id: 8, name: '运动', icon: '⚽' },
+  { id: 9, name: '图书', icon: '📚' },
+  { id: 10, name: '更多', icon: '➕' },
+]
+
+// 模拟数据（用于 API 失败时降级）
+const defaultBanners: Banner[] = [
+  { id: 1, image: 'https://via.placeholder.com/750x360/e4393c/ffffff?text=春季大促', link: '' },
+  { id: 2, image: 'https://via.placeholder.com/750x360/ff6b6b/ffffff?text=新品首发', link: '' },
+  { id: 3, image: 'https://via.placeholder.com/750x360/ee5a24/ffffff?text=限时秒杀', link: '' },
+]
+
+const defaultHotProducts: Product[] = [
+  { id: 1, name: 'Apple iPhone 15 Pro Max 256GB 原色钛金属', price: 9999, originalPrice: 10999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=iPhone', sales: 12580 },
+  { id: 2, name: '华为 MatePad Pro 13.2 英寸 OLED 屏幕 12+256GB', price: 5199, originalPrice: 5999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Pad', sales: 8920 },
+  { id: 3, name: '小米 14 Ultra 徕卡光学 Summilux 镜头 16+512GB', price: 6499, originalPrice: 6999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Mi14', sales: 15600 },
+  { id: 4, name: 'AirPods Pro (第二代) 配 MagSafe 充电盒 USB-C', price: 1499, originalPrice: 1899, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=AirPods', sales: 32400 },
+]
+
+const defaultNewProducts: Product[] = [
+  { id: 5, name: 'MacBook Pro 14 英寸 M3 Pro 芯片 18+512GB', price: 14999, originalPrice: 15999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=MacBook', sales: 1200 },
+  { id: 6, name: '索尼 WH-1000XM5 头戴式降噪蓝牙耳机', price: 2299, originalPrice: 2999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Sony', sales: 5680 },
+  { id: 7, name: '戴森 V15 Detect Absolute 智能无绳吸尘器', price: 4690, originalPrice: 5490, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Dyson', sales: 2340 },
+  { id: 8, name: '任天堂 Switch OLED 白色日版续航加强版', price: 2199, originalPrice: 2599, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Switch', sales: 9870 },
+]
+
 const Home = () => {
   const [banners, setBanners] = useState<Banner[]>([])
-  const [navItems, setNavItems] = useState<NavItem[]>([])
   const [hotProducts, setHotProducts] = useState<Product[]>([])
   const [newProducts, setNewProducts] = useState<Product[]>([])
-  const [searchValue, setSearchValue] = useState('')
 
-  // 模拟数据（实际项目中从 API 获取）
   useEffect(() => {
-    // 模拟 banner 数据
-    setBanners([
-      { id: 1, image: 'https://via.placeholder.com/750x360/e4393c/ffffff?text=春季大促', link: '' },
-      { id: 2, image: 'https://via.placeholder.com/750x360/ff6b6b/ffffff?text=新品首发', link: '' },
-      { id: 3, image: 'https://via.placeholder.com/750x360/ee5a24/ffffff?text=限时秒杀', link: '' },
-    ])
-
-    // 模拟分类导航
-    setNavItems([
-      { id: 1, name: '手机', icon: '📱' },
-      { id: 2, name: '电脑', icon: '💻' },
-      { id: 3, name: '家电', icon: '🏠' },
-      { id: 4, name: '服饰', icon: '👕' },
-      { id: 5, name: '美妆', icon: '💄' },
-      { id: 6, name: '食品', icon: '🍎' },
-      { id: 7, name: '母婴', icon: '👶' },
-      { id: 8, name: '运动', icon: '⚽' },
-      { id: 9, name: '图书', icon: '📚' },
-      { id: 10, name: '更多', icon: '➕' },
-    ])
-
-    // 模拟热门商品
-    setHotProducts([
-      { id: 1, name: 'Apple iPhone 15 Pro Max 256GB 原色钛金属', price: 9999, originalPrice: 10999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=iPhone', sales: 12580 },
-      { id: 2, name: '华为 MatePad Pro 13.2英寸 OLED屏幕 12+256GB', price: 5199, originalPrice: 5999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Pad', sales: 8920 },
-      { id: 3, name: '小米14 Ultra 徕卡光学Summilux镜头 16+512GB', price: 6499, originalPrice: 6999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Mi14', sales: 15600 },
-      { id: 4, name: 'AirPods Pro (第二代) 配MagSafe充电盒 USB-C', price: 1499, originalPrice: 1899, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=AirPods', sales: 32400 },
-    ])
-
-    // 模拟新品上架
-    setNewProducts([
-      { id: 5, name: 'MacBook Pro 14英寸 M3 Pro芯片 18+512GB', price: 14999, originalPrice: 15999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=MacBook', sales: 1200 },
-      { id: 6, name: '索尼 WH-1000XM5 头戴式降噪蓝牙耳机', price: 2299, originalPrice: 2999, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Sony', sales: 5680 },
-      { id: 7, name: '戴森 V15 Detect Absolute 智能无绳吸尘器', price: 4690, originalPrice: 5490, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Dyson', sales: 2340 },
-      { id: 8, name: '任天堂 Switch OLED 白色日版续航加强版', price: 2199, originalPrice: 2599, image: 'https://via.placeholder.com/300x300/f5f5f5/333?text=Switch', sales: 9870 },
-    ])
-
-    // 实际项目中使用 API 获取
-    // fetchHomeData()
+    fetchHomeData()
   }, [])
+
+  // 获取首页数据
+  const fetchHomeData = async () => {
+    try {
+      // 获取轮播图
+      const bannerRes = await get<Banner[]>('/banner/list')
+      setBanners(bannerRes.data?.length ? bannerRes.data : defaultBanners)
+
+      // 获取热门商品
+      const hotRes = await get<Product[]>('/product/hot', { limit: 4 })
+      setHotProducts(hotRes.data?.length ? hotRes.data : defaultHotProducts)
+
+      // 获取新品商品
+      const newRes = await get<Product[]>('/product/new', { limit: 4 })
+      setNewProducts(newRes.data?.length ? newRes.data : defaultNewProducts)
+    } catch (err) {
+      console.error('Failed to fetch home data:', err)
+      // 使用模拟数据作为降级方案
+      setBanners(defaultBanners)
+      setHotProducts(defaultHotProducts)
+      setNewProducts(defaultNewProducts)
+    }
+  }
 
   // 跳转搜索页
   const handleSearch = () => {

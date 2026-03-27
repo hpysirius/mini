@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image, Swiper, SwiperItem, ScrollView, RichText } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import './index.scss'
+import './detail.scss'
 
 interface ProductInfo {
   id: number

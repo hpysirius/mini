@@ -13,13 +13,17 @@ export default function Login() {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true)
     try {
-      const res: any = await request.post('/auth/login', values)
-      setToken(res.token)
-      setUser(res.user)
-      message.success('登录成功')
-      navigate('/dashboard')
-    } catch {
-      // 错误已由拦截器处理
+      const res: any = await request.post('/login', values)
+      if (res.code === 0) {
+        setToken(res.data.token)
+        setUser(res.data.adminInfo)
+        message.success('登录成功')
+        navigate('/dashboard')
+      } else {
+        message.error(res.msg || '登录失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '登录失败')
     } finally {
       setLoading(false)
     }

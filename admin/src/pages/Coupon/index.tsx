@@ -40,7 +40,7 @@ export default function CouponPage() {
     setLoading(true)
     try {
       const res: any = await request.get('/coupons')
-      setList(res.list || res || [])
+      setList(res.data || [])
     } catch { /* handled */ }
     finally { setLoading(false) }
   }
@@ -162,7 +162,7 @@ export default function CouponPage() {
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields() }}
         onOk={() => form.submit()}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Form.Item name="name" label="优惠券名称" rules={[{ required: true, message: '请输入名称' }]}>

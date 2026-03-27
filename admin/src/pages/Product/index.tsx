@@ -43,8 +43,8 @@ export default function Product() {
       const res: any = await request.get('/products', {
         params: { page, pageSize, keyword, categoryId },
       })
-      setList(res.list || [])
-      setTotal(res.total || 0)
+      setList(res.data?.list || res.data?.data?.list || [])
+      setTotal(res.data?.total || res.data?.data?.total || 0)
     } catch { /* handled */ }
     finally { setLoading(false) }
   }
@@ -52,8 +52,8 @@ export default function Product() {
   /** 获取分类列表 */
   const fetchCategories = async () => {
     try {
-      const res: any = await request.get('/categories/all')
-      setCategories(res || [])
+      const res: any = await request.get('/categories')
+      setCategories(res.data || res || [])
     } catch { /* handled */ }
   }
 
@@ -193,7 +193,7 @@ export default function Product() {
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields() }}
         onOk={() => form.submit()}
         width={700}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Form.Item name="name" label="商品名称" rules={[{ required: true }]}>

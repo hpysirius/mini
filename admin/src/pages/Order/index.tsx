@@ -59,8 +59,8 @@ export default function Order() {
       const res: any = await request.get('/orders', {
         params: { page, pageSize: 10, status: status || undefined },
       })
-      setList(res.list || [])
-      setTotal(res.total || 0)
+      setList(res.data?.list || [])
+      setTotal(res.data?.total || 0)
     } catch { /* handled */ }
     finally { setLoading(false) }
   }

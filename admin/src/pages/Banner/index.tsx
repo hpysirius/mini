@@ -29,7 +29,7 @@ export default function BannerPage() {
     setLoading(true)
     try {
       const res: any = await request.get('/banners')
-      setList(res.list || res || [])
+      setList(res.data || [])
     } catch { /* handled */ }
     finally { setLoading(false) }
   }
@@ -125,7 +125,7 @@ export default function BannerPage() {
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields() }}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
