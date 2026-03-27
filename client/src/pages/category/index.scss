@@ -82,37 +82,6 @@
   padding: $spacing-base;
 }
 
-// ========== 子分类 ==========
-.subcategory {
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: $spacing-lg;
-
-  &__item {
-    width: 33.33%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: $spacing-md;
-  }
-
-  &__icon {
-    width: 80px;
-    height: 80px;
-    line-height: 80px;
-    text-align: center;
-    font-size: 36px;
-    background-color: #f5f5f5;
-    border-radius: $radius-base;
-    margin-bottom: $spacing-xs;
-  }
-
-  &__name {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-  }
-}
-
 // ========== 商品列表 ==========
 .product-list {
   display: flex;

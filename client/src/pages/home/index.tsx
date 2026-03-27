@@ -10,7 +10,7 @@ interface Product {
   name: string
   price: number
   originalPrice: number
-  image: string
+  main_image: string
   sales: number
 }
 
@@ -175,7 +175,7 @@ const Home = () => {
                 key={product.id}
                 onClick={() => goToDetail(product.id)}
               >
-                <Image className='product-card__image' src={product.image} mode='aspectFill' />
+                <Image className='product-card__image' src={product.main_image} mode='aspectFill' />
                 <View className='product-card__info'>
                   <Text className='product-card__name'>{product.name}</Text>
                   <View className='product-card__price-row'>
@@ -205,7 +205,7 @@ const Home = () => {
                 key={product.id}
                 onClick={() => goToDetail(product.id)}
               >
-                <Image className='product-card__image' src={product.image} mode='aspectFill' />
+                <Image className='product-card__image' src={product.main_image} mode='aspectFill' />
                 <View className='product-card__info'>
                   <Text className='product-card__name'>{product.name}</Text>
                   <View className='product-card__price-row'>

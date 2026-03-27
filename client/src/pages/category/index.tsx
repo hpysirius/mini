@@ -8,7 +8,6 @@ import './index.scss'
 interface Category {
   id: number
   name: string
-  children?: Category[]
 }
 
 // 商品接口
@@ -30,13 +29,13 @@ const CategoryPage = () => {
     loadCategories()
   }, [])
 
-  // 加载分类列表（一级分类）
+  // 加载分类列表
   const loadCategories = async () => {
     try {
       const res: any = await get('/category/list')
       if (res.data && res.data.length > 0) {
         setCategories(res.data)
-        loadProducts(res.data[0])
+        loadProducts(res.data[0].id)
       } else {
         setCategories([])
         setProducts([])
@@ -46,34 +45,21 @@ const CategoryPage = () => {
     }
   }
 
-  // 根据分类加载商品（包含子分类）
-  const loadProducts = async (category: Category) => {
+  // 根据分类 ID 加载商品
+  const loadProducts = async (categoryId: number) => {
     setLoading(true)
     try {
-      // 获取当前分类及其子分类的所有 ID
-      const categoryIds = [category.id]
-      if (category.children && category.children.length > 0) {
-        category.children.forEach(child => categoryIds.push(child.id))
-      }
-
-      // 并行查询所有分类的商品
-      const results = await Promise.all(
-        categoryIds.map(id => get('/product/list', { params: { categoryId: id, page: 1, pageSize: 50 } }))
-      )
-      const allProducts: Product[] = []
-      results.forEach((res: any) => {
-        const list = res.data?.list || []
-        allProducts.push(...list.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          image: item.main_image,
-          sales: item.sales || 0,
-        })))
+      const res: any = await get('/product/list', {
+        params: { categoryId, page: 1, pageSize: 50 }
       })
-      // 去重
-      const uniqueProducts = Array.from(new Map(allProducts.map(item => [item.id, item])).values())
-      setProducts(uniqueProducts)
+      const list = res.data?.list || []
+      setProducts(list.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.main_image,
+        sales: item.sales || 0,
+      })))
     } catch (error) {
       console.error('加载商品失败:', error)
       setProducts([])
@@ -85,7 +71,7 @@ const CategoryPage = () => {
   // 切换分类
   const handleCategoryChange = (index: number) => {
     setActiveIndex(index)
-    loadProducts(categories[index])
+    loadProducts(categories[index].id)
   }
 
   // 跳转商品详情
@@ -97,8 +83,6 @@ const CategoryPage = () => {
   const goToSearch = () => {
     Taro.navigateTo({ url: '/pages/search/index' })
   }
-
-  const currentCategory = categories[activeIndex]
 
   return (
     <View className='category-page'>
@@ -129,21 +113,8 @@ const CategoryPage = () => {
           </ScrollView>
         )}
 
-        {/* 右侧内容 */}
+        {/* 右侧内容 - 商品列表 */}
         <ScrollView scrollY className='category-content'>
-          {/* 子分类展示（仅展示，点击不切换） */}
-          {currentCategory?.children && currentCategory.children.length > 0 && (
-            <View className='subcategory'>
-              {currentCategory.children.map((sub) => (
-                <View className='subcategory__item' key={sub.id}>
-                  <View className='subcategory__icon'>📦</View>
-                  <Text className='subcategory__name'>{sub.name}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* 商品列表 */}
           {loading ? (
             <View className='product-list-empty'>
               <Text>加载中...</Text>
