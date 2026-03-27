@@ -47,21 +47,50 @@ const CategoryPage = () => {
     }
   }
 
-  // 加载分类下的商品
+  // 加载分类下的商品（包含子分类）
   const loadProducts = async (categoryId: number) => {
     setLoading(true)
     try {
-      const res: any = await get('/product/list', {
-        params: { categoryId, page: 1, pageSize: 50 }
-      })
-      const list = res.data?.list || []
-      setProducts(list.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        image: item.main_image,
-        sales: item.sales || 0,
-      })))
+      const category = categories.find(c => c.id === categoryId)
+      // 获取当前分类及其子分类的所有 ID
+      const categoryIds = [categoryId]
+      if (category?.children) {
+        category.children.forEach(child => categoryIds.push(child.id))
+      }
+
+      // 如果没有子分类，只查询当前分类
+      if (categoryIds.length === 1) {
+        const res: any = await get('/product/list', {
+          params: { categoryId, page: 1, pageSize: 50 }
+        })
+        const list = res.data?.list || []
+        setProducts(list.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          image: item.main_image,
+          sales: item.sales || 0,
+        })))
+      } else {
+        // 有子分类时，并行查询所有分类的商品
+        const results = await Promise.all(
+          categoryIds.map(id => get('/product/list', { params: { categoryId: id, page: 1, pageSize: 50 } }))
+        )
+        const allProducts: Product[] = []
+        results.forEach((res: any) => {
+          const list = res.data?.list || []
+          allProducts.push(...list.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            image: item.main_image,
+            sales: item.sales || 0,
+          })))
+        })
+        // 去重
+        const uniqueProducts = Array.from(new Map(allProducts.map(item => [item.id, item])).values())
+        setProducts(uniqueProducts)
+      }
     } catch (error) {
       console.error('加载商品失败:', error)
       setProducts([])
