@@ -96,7 +96,10 @@ export default function Product() {
   /** 打开编辑弹窗 */
   const openEdit = (record: Product) => {
     setEditing(record)
-    form.setFieldsValue(record)
+    form.setFieldsValue({
+      ...record,
+      categoryId: record.categoryId || record.category_id,
+    })
     setModalOpen(true)
   }
 
