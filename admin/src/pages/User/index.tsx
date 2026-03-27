@@ -26,10 +26,18 @@ export default function UserPage() {
     setLoading(true)
     try {
       const res: any = await request.get('/users', { params: { page, pageSize: 10 } })
-      setList(res.list || [])
-      setTotal(res.total || 0)
-    } catch { /* handled */ }
-    finally { setLoading(false) }
+      if (res.code === 0) {
+        setList(res.data?.list || [])
+        setTotal(res.data?.total || 0)
+      } else {
+        message.error(res.msg || '加载失败')
+      }
+    } catch (err: any) {
+      console.error('获取用户列表失败:', err)
+      message.error(err.message || '加载失败')
+    } finally {
+      setLoading(false)
+    }
   }
 
   /** 启用/禁用 */
